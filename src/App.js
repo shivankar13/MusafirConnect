@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import "./App.css";
 
 // Simple in-memory data model to demonstrate Admin features
-// In real usage, you'd connect to a backend (Firebase, Supabase, etc.)
+// In production, you'd connect to a real backend (Firebase, Supabase, etc.)
 
 function MusafirConnectApp() {
-  // "screen" for guest login, staff login, or main app
+  // Screen states: 'login' (guest), 'staffLogin', or 'app' (guest), or staff portal
   const [screen, setScreen] = useState("login");
+
+  // Guest states
   const [nickname, setNickname] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [activeTab, setActiveTab] = useState("home");
@@ -15,71 +17,75 @@ function MusafirConnectApp() {
   const [staffLoggedIn, setStaffLoggedIn] = useState(false);
   const [staffUsername, setStaffUsername] = useState("");
   const [staffPassword, setStaffPassword] = useState("");
+  const [adminTab, setAdminTab] = useState("events");
 
-  // Chat states
+  // Chat
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
 
-  // RSVP states
-  const [rsvps, setRsvps] = useState({}); // { eventId: [nicknames...] }
+  // RSVPs: { eventId: [nicknames...], ... }
+  const [rsvps, setRsvps] = useState({});
 
-  // Access Codes (Staff can generate)
+  // Access codes staff can generate
   const [codes, setCodes] = useState(["ABC123", "XYZ789"]);
 
-  // Admin Tab states
-  const [adminTab, setAdminTab] = useState("events");
-
-  // Our events array (Staff can add/edit/delete)
+  // Events array (Staff can CRUD)
   const [events, setEvents] = useState([
     {
       id: "yoga",
       title: "Sunrise Yoga Session",
       time: "6:00 AM - 7:00 AM",
       location: "Rooftop Terrace",
-      description: "Start your day with energizing yoga and breathtaking views."
+      description: "Start your day with energizing yoga and breathtaking views.",
+      image: "https://placehold.co/500x200?text=Sunrise+Yoga"
     },
     {
       id: "jam",
       title: "Acoustic Jam Session",
       time: "8:00 PM - 10:00 PM",
       location: "Common Area",
-      description: "Bring your instruments or just your voice and share music."
+      description: "Bring your instruments or just your voice and share music.",
+      image: "https://placehold.co/500x200?text=Acoustic+Jam"
     },
     {
       id: "market",
       title: "Local Market Tour",
       time: "Tomorrow, 10:00 AM - 1:00 PM",
       location: "Meet at Reception",
-      description: "Explore the vibrant local market with our guide."
+      description: "Explore the vibrant local market with our guide.",
+      image: "https://placehold.co/500x200?text=Local+Market"
     },
     {
       id: "art",
       title: "Art Workshop: Mandala Drawing",
       time: "Tomorrow, 4:00 PM - 6:00 PM",
       location: "Creative Space",
-      description: "Learn mandala drawing in this relaxing and creative workshop."
+      description: "Learn mandala drawing in this relaxing and creative workshop.",
+      image: "https://placehold.co/500x200?text=Mandala+Drawing"
     }
   ]);
 
-  // Form states for adding/editing events
+  // Form states for adding a new event (Admin)
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventTime, setNewEventTime] = useState("");
   const [newEventLocation, setNewEventLocation] = useState("");
   const [newEventDescription, setNewEventDescription] = useState("");
+  const [newEventImage, setNewEventImage] = useState("");
 
-  // GUEST FLOW
-  // ==========
-
+  /* ---------------------------
+     GUEST LOGIN / FLOW
+  ---------------------------- */
   const handleGuestLogin = () => {
+    // For now, we don't strictly validate the code.
+    // In a real system, you'd check if accessCode is in 'codes' array or server.
     if (accessCode.trim() && nickname.trim()) {
-      // Check if the accessCode is valid or not (optional logic)
-      // For now, if we have some code, we proceed.
       setScreen("app");
     } else {
       alert("Please enter both access code and nickname.");
     }
   };
 
+  // Send message in chat
   const sendMessage = () => {
     if (chatInput.trim()) {
       const newMsg = {
@@ -92,9 +98,8 @@ function MusafirConnectApp() {
     }
   };
 
+  // RSVP an event
   const handleRSVP = (eventId) => {
-    // Add nickname to event's RSVP list
-    // e.g. rsvps[eventId] = [list of nicknames who joined]
     const currentRSVPs = rsvps[eventId] || [];
     if (!currentRSVPs.includes(nickname)) {
       const updated = {
@@ -108,11 +113,11 @@ function MusafirConnectApp() {
     }
   };
 
-  // STAFF FLOW
-  // ==========
-
+  /* ---------------------------
+     STAFF LOGIN / ADMIN FLOW
+  ---------------------------- */
   const handleStaffLogin = () => {
-    // Very basic check, real app would do secure auth
+    // Basic check: in real app, you'd do secure auth
     if (staffUsername === "admin" && staffPassword === "admin") {
       setStaffLoggedIn(true);
     } else {
@@ -120,60 +125,67 @@ function MusafirConnectApp() {
     }
   };
 
+  // Add new event (Admin)
   const handleAddEvent = () => {
     if (!newEventTitle.trim()) {
       alert("Please enter an event title.");
       return;
     }
-    const id = newEventTitle.toLowerCase().replace(/ /g, "-") + Date.now();
+    // Simple ID generation
+    const id =
+      newEventTitle.toLowerCase().replace(/ /g, "-") + Date.now().toString();
     const newEvent = {
       id,
       title: newEventTitle,
       time: newEventTime,
       location: newEventLocation,
-      description: newEventDescription
+      description: newEventDescription,
+      image: newEventImage
     };
     setEvents([...events, newEvent]);
-    // Reset form fields
+
+    // Reset form
     setNewEventTitle("");
     setNewEventTime("");
     setNewEventLocation("");
     setNewEventDescription("");
+    setNewEventImage("");
     alert("New event added!");
   };
 
+  // Delete an event (Admin)
   const handleDeleteEvent = (id) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       setEvents(events.filter((e) => e.id !== id));
     }
   };
 
+  // Generate new access code (Admin)
   const generateAccessCode = () => {
-    // Simple random code logic
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     setCodes([...codes, code]);
   };
 
+  // Basic analytics
   const totalRSVPCount = Object.values(rsvps).reduce(
     (acc, arr) => acc + arr.length,
     0
   );
-
-  // # messages can be used for analytics
   const totalMessages = messages.length;
-
-  // # events for analytics
   const totalEvents = events.length;
 
-  // RENDER
-  // ======
+  // Staff Logged In Portal
+  const [staffLoggedIn, setStaffLoggedIn2] = useState(false);
 
-  // Staff Portal
+  /* ---------------------------
+     STAFF PORTAL UI
+  ---------------------------- */
   if (staffLoggedIn) {
     return (
       <div className="container" style={{ paddingBottom: "5rem" }}>
         <header>Musafir Connect - Admin Portal</header>
 
+        {/* Admin Tab Navigation */}
         <div className="tab-bar" style={{ position: "relative" }}>
           <div
             className={`tab-item ${adminTab === "events" ? "active" : ""}`}
@@ -205,12 +217,28 @@ function MusafirConnectApp() {
           </div>
         </div>
 
+        {/* Events Management Tab */}
         {adminTab === "events" && (
           <div className="main-content">
             <h2>Manage Events</h2>
-            <div style={{ marginBottom: "1rem", border: "1px solid #ddd", padding: "1rem", borderRadius: "5px" }}>
+
+            {/* Add Event Form */}
+            <div
+              style={{
+                marginBottom: "1rem",
+                border: "1px solid #ddd",
+                padding: "1rem",
+                borderRadius: "5px"
+              }}
+            >
               <h3>Add a New Event</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem"
+                }}
+              >
                 <input
                   placeholder="Event Title"
                   value={newEventTitle}
@@ -231,24 +259,44 @@ function MusafirConnectApp() {
                   value={newEventDescription}
                   onChange={(e) => setNewEventDescription(e.target.value)}
                 />
+                <input
+                  placeholder="Image URL"
+                  value={newEventImage}
+                  onChange={(e) => setNewEventImage(e.target.value)}
+                />
                 <button className="button" onClick={handleAddEvent}>
                   Add Event
                 </button>
               </div>
             </div>
 
+            {/* List of existing events */}
             {events.map((ev) => (
               <div key={ev.id} className="event-card">
+                {ev.image && (
+                  <div style={{ marginBottom: "0.5rem" }}>
+                    <img
+                      src={ev.image}
+                      alt={ev.title}
+                      style={{ width: "100%", maxHeight: "200px", objectFit: "cover" }}
+                    />
+                  </div>
+                )}
                 <h4>{ev.title}</h4>
-                <p>{ev.time} | {ev.location}</p>
+                <p>
+                  {ev.time} | {ev.location}
+                </p>
                 <p>{ev.description}</p>
                 <p>RSVP Count: {rsvps[ev.id] ? rsvps[ev.id].length : 0}</p>
-                <button className="button" onClick={() => handleDeleteEvent(ev.id)}>Delete</button>
+                <button className="button" onClick={() => handleDeleteEvent(ev.id)}>
+                  Delete
+                </button>
               </div>
             ))}
           </div>
         )}
 
+        {/* Access Code Management Tab */}
         {adminTab === "codes" && (
           <div className="main-content">
             <h2>Access Codes</h2>
@@ -256,25 +304,30 @@ function MusafirConnectApp() {
               Generate New Code
             </button>
             {codes.map((c) => (
-              <div key={c} style={{ marginBottom: "0.5rem" }}>{c}</div>
+              <div key={c} style={{ marginBottom: "0.5rem" }}>
+                {c}
+              </div>
             ))}
           </div>
         )}
 
+        {/* Analytics Tab */}
         {adminTab === "analytics" && (
           <div className="main-content">
             <h2>Guest Engagement Analytics</h2>
             <p>Total Events: {totalEvents}</p>
             <p>Total RSVPs: {totalRSVPCount}</p>
             <p>Total Messages in Chat: {totalMessages}</p>
-            {/* Add more analytics as needed */}
+            {/* You can add more analytics as needed */}
           </div>
         )}
       </div>
     );
   }
 
-  // Staff Login Screen
+  /* ---------------------------
+     STAFF LOGIN SCREEN
+  ---------------------------- */
   if (screen === "staffLogin") {
     return (
       <div className="container login-container">
@@ -298,7 +351,9 @@ function MusafirConnectApp() {
               placeholder="admin"
             />
           </div>
-          <button className="login-button" onClick={handleStaffLogin}>Login as Staff</button>
+          <button className="login-button" onClick={handleStaffLogin}>
+            Login as Staff
+          </button>
         </div>
         <div className="login-footer" style={{ marginTop: "1rem" }}>
           <button className="button" onClick={() => setScreen("login")}>Go Back</button>
@@ -307,7 +362,9 @@ function MusafirConnectApp() {
     );
   }
 
-  // Guest Login Screen
+  /* ---------------------------
+     GUEST LOGIN SCREEN
+  ---------------------------- */
   if (screen === "login") {
     return (
       <div className="container" id="login-screen">
@@ -347,27 +404,42 @@ function MusafirConnectApp() {
     );
   }
 
-  // Main Guest App Screen
+  /* ---------------------------
+     GUEST MAIN APP SCREEN
+  ---------------------------- */
   if (screen === "app") {
     return (
       <div className="container" id="app-screen">
         <header>Musafir Connect</header>
-        {/* Home Tab Content */}
+
+        {/* Home Tab */}
         {activeTab === "home" && (
           <div className="main-content" id="home-tab-content">
             <h2>Welcome, {nickname}!</h2>
             <p>Discover activities, meet fellow travelers, and make memories.</p>
 
             <h3>Today's Highlights</h3>
-            {events.slice(0,2).map(event => (
+            {events.slice(0, 2).map((event) => (
               <div key={event.id} className="event-card">
+                {event.image && (
+                  <div style={{ marginBottom: "0.5rem" }}>
+                    <img
+                      src={event.image}
+                      alt={event.title}
+                      style={{ width: "100%", maxHeight: "200px", objectFit: "cover" }}
+                    />
+                  </div>
+                )}
                 <h4>{event.title}</h4>
-                <p>{event.time} | {event.location}</p>
+                <p>
+                  {event.time} | {event.location}
+                </p>
                 <p>{event.description}</p>
-                <div>
-                  RSVP Count: {rsvps[event.id] ? rsvps[event.id].length : 0}
-                </div>
-                <button className="button" onClick={() => handleRSVP(event.id)}>
+                <div>RSVP Count: {rsvps[event.id] ? rsvps[event.id].length : 0}</div>
+                <button
+                  className="button"
+                  onClick={() => handleRSVP(event.id)}
+                >
                   {rsvps[event.id]?.includes(nickname) ? "Joined" : "Join"}
                 </button>
               </div>
@@ -381,34 +453,47 @@ function MusafirConnectApp() {
             </div>
           </div>
         )}
-        {/* Events Tab Content */}
+
+        {/* Events Tab */}
         {activeTab === "events" && (
           <div className="main-content" id="events-tab-content">
             <h2>All Upcoming Events</h2>
             {events.map((event) => (
               <div key={event.id} className="event-card">
+                {event.image && (
+                  <div style={{ marginBottom: "0.5rem" }}>
+                    <img
+                      src={event.image}
+                      alt={event.title}
+                      style={{ width: "100%", maxHeight: "200px", objectFit: "cover" }}
+                    />
+                  </div>
+                )}
                 <h4>{event.title}</h4>
-                <p>{event.time} | {event.location}</p>
+                <p>
+                  {event.time} | {event.location}
+                </p>
                 <p>{event.description}</p>
-                <div>
-                  RSVP Count: {rsvps[event.id] ? rsvps[event.id].length : 0}
-                </div>
-                <button className="button" onClick={() => handleRSVP(event.id)}>
+                <div>RSVP Count: {rsvps[event.id] ? rsvps[event.id].length : 0}</div>
+                <button
+                  className="button"
+                  onClick={() => handleRSVP(event.id)}
+                >
                   {rsvps[event.id]?.includes(nickname) ? "Joined" : "Join"}
                 </button>
               </div>
             ))}
           </div>
         )}
-        {/* Chat Tab Content */}
+
+        {/* Chat Tab */}
         {activeTab === "chat" && (
           <div className="main-content" id="chat-tab-content">
             <h2>Hostel Chat</h2>
             <div className="chat-container">
               {messages.map((msg, index) => (
                 <div key={index} className="message">
-                  <strong>{msg.sender}:</strong> {" "}
-                  {msg.content}
+                  <strong>{msg.sender}:</strong> {msg.content}
                   <div style={{ fontSize: "0.7rem", color: "#999" }}>{msg.time}</div>
                 </div>
               ))}
@@ -420,17 +505,26 @@ function MusafirConnectApp() {
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Type a message..."
               />
-              <button className="button" onClick={sendMessage}>Send</button>
+              <button className="button" onClick={sendMessage}>
+                Send
+              </button>
             </div>
           </div>
         )}
-        {/* Profile Tab Content */}
+
+        {/* Profile Tab */}
         {activeTab === "profile" && (
           <div className="main-content" id="profile-tab-content">
             <h2>Your Profile</h2>
-            <p><strong>Nickname:</strong> {nickname}</p>
-            <p><strong>Stay Dates:</strong> March 5 - March 8, 2025</p>
-            <p><strong>Room:</strong> Dorm 3, Bed 2</p>
+            <p>
+              <strong>Nickname:</strong> {nickname}
+            </p>
+            <p>
+              <strong>Stay Dates:</strong> March 5 - March 8, 2025
+            </p>
+            <p>
+              <strong>Room:</strong> Dorm 3, Bed 2
+            </p>
             <h3>My Activities</h3>
             {Object.entries(rsvps)
               .filter(([eventId, nicks]) => nicks.includes(nickname))
@@ -438,17 +532,21 @@ function MusafirConnectApp() {
                 const e = events.find((ev) => ev.id === eventId);
                 return <p key={eventId}>• {e?.title}</p>;
               })}
-            <button className="button" style={{ width: "100%", marginTop: "2rem" }} onClick={() => {
-              setScreen("login");
-              setNickname("");
-              setAccessCode("");
-            }}>
+            <button
+              className="button"
+              style={{ width: "100%", marginTop: "2rem" }}
+              onClick={() => {
+                setScreen("login");
+                setNickname("");
+                setAccessCode("");
+              }}
+            >
               Log Out
             </button>
           </div>
         )}
 
-        {/* Bottom Navigation */}
+        {/* Bottom Nav Tabs */}
         <div className="tab-bar">
           <div
             className={`tab-item ${activeTab === "home" ? "active" : ""}`}
@@ -483,6 +581,7 @@ function MusafirConnectApp() {
     );
   }
 
+  // Fallback if something goes wrong
   return <div>Something went wrong.</div>;
 }
 
